@@ -73,14 +73,14 @@
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/bth_send"
             style="@style/Button"
-            android:textColor="@color/white"
-            android:textAllCaps="false"
-            android:textSize="18dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
             android:onClick="SendMessage"
-            android:text="Отправить" />
+            android:text="Отправить"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="18dp" />
 
     </LinearLayout>
 
