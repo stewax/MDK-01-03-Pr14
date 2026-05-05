@@ -5,46 +5,39 @@ import android.util.Log;
 import android.widget.EditText;
 
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 
 public class SendCommon extends AsyncTask<Void, Void, Void> {
-    public String Url = "http://192.168.0.109:5000/api/CommonController/Send", Code;
-    public EditText tbEmail;
+    public String Url = "http://10.111.20.114:5000/api/user/send", Code;
+    public String tbEmail;
     CallbackResponse CallbackResponse, CallbackError;
-    public SendCommon(EditText tbEmail, CallbackResponse callbackResponse, CallbackResponse callbackError){
-        this.tbEmail = tbEmail;
+
+    public SendCommon(EditText tbEmail, CallbackResponse callbackResponse, CallbackResponse callbackError) {
+        this.tbEmail = tbEmail.getText().toString();
         this.CallbackResponse = callbackResponse;
         this.CallbackError = callbackError;
     }
 
     @Override
-    protected Void doInBackground(Void... Voids){
+    protected Void doInBackground(Void... Voids) {
         try {
-            String email = tbEmail.getText().toString();
-            if (email.isEmpty()) {
-                Log.e("Errors", "Email is empty");
-                return null;
-            }
-
-            String responseBody = Jsoup.connect(Url + "?Email=" + email)
+            Document Response = Jsoup.connect(Url + "?Email=" + tbEmail)
                     .ignoreContentType(true)
-                    .timeout(10000) // Добавьте таймаут
-                    .execute()
-                    .body();
-            Code = responseBody;
-            Log.d("SendCommon", "Response: " + responseBody);
-        } catch (IOException e){
+                    .get();
+            Code = Response.text();
+        } catch (IOException e) {
             Log.e("Errors", e.getMessage());
-            Code = null;
         }
+
         return null;
     }
 
     @Override
-    protected void onPostExecute(Void aVoid){
+    protected void onPostExecute(Void aVoid) {
         super.onPostExecute(aVoid);
-        if (Code == null)CallbackError.returner("Error");
+        if (Code == null) CallbackError.returner("Error");
         else CallbackResponse.returner(Code);
     }
 }

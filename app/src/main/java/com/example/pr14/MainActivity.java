@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -23,105 +24,77 @@ import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "MainActivity";
-
-    private EditText tbUserEmail;
-    private Drawable backgroundRed, backgroundNormal;
-    private Context context;
-    private String code;
-
-    private final CallbackResponse callbackResponseError = new CallbackResponse() {
-        @Override
-        public void returner(String response) {
-            runOnUiThread(() -> {
-                Toast.makeText(context, "Ошибка сервера", Toast.LENGTH_SHORT).show();
-
-                if (sendCommon != null) {
-                    sendCommon = new SendCommon(tbUserEmail, callbackResponseCode, callbackResponseError);
-                }
-            });
-        }
-    };
-
-    private final CallbackResponse callbackResponseCode = new CallbackResponse() {
-        @Override
-        public void returner(String response) {
-            runOnUiThread(() -> {
-                AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                ConstraintLayout customView = (ConstraintLayout) getLayoutInflater().inflate(R.layout.check_email, null);
-                builder.setView(customView);
-                builder.setOnCancelListener(alertDialogCancelListener);
-
-                AlertDialog dialog = builder.create();
-                dialog.show();
-
-                code = response;
-                Log.d(TAG, "Получен код подтверждения: " + code);
-            });
-        }
-    };
-
-    private SendCommon sendCommon;
-
-    private DialogInterface.OnCancelListener alertDialogCancelListener = dialogInterface -> {
-        Intent verificationIntent = new Intent(context, Verification.class);
-        verificationIntent.putExtra("Code", code);
-        verificationIntent.putExtra("Email", tbUserEmail.getText().toString());
-        startActivity(verificationIntent);
-        finish();
-    };
+    public EditText tbUserEmail;
+    public Drawable BackgroundRed, Background;
+    public Context Context;
+    public SendCommon SendCommon;
+    public String Code;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        context = this;
-
-        backgroundRed = ContextCompat.getDrawable(this, R.drawable.edittext_backround_red);
-        backgroundNormal = ContextCompat.getDrawable(this, R.drawable.edittext_backround);
-
+        BackgroundRed = ContextCompat.getDrawable(this, R.drawable.edittext_backround_red);
+        Background = ContextCompat.getDrawable(this, R.drawable.edittext_backround);
         tbUserEmail = findViewById(R.id.user_email);
+        SendCommon = new SendCommon(tbUserEmail, CallbackResponseCode, CallbackResponseError);
+        Context = this;
 
-        sendCommon = new SendCommon(tbUserEmail, callbackResponseCode, callbackResponseError);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
     }
 
-    public boolean isValid(String value) {
-        if (value == null || value.isEmpty()) return false;
-        Pattern pattern = Pattern.compile("^\\w{2,20}@\\w{2,10}\\.\\w{2,4}$");
-        return pattern.matcher(value).matches();
+    public Boolean IsValid(String Value) {
+        Pattern sPattern = Pattern.compile("\\w{1,20}.*@\\w{1,10}\\.\\w{1,4}$");
+        return sPattern.matcher(Value).matches();
     }
-
 
     public void SendMessage(View view) {
-        String userEmail = tbUserEmail.getText().toString().trim();
-
-        if (!isValid(userEmail)) {
-            if (backgroundRed != null) tbUserEmail.setBackground(backgroundRed);
-            Toast.makeText(context, "Не верно введён Email.", Toast.LENGTH_SHORT).show();
+        String UserEmail = String.valueOf(tbUserEmail.getText());
+        if (!IsValid(UserEmail)) {
+            tbUserEmail.setBackground(BackgroundRed);
+            Toast.makeText(this, "Не верно введён Email", Toast.LENGTH_SHORT).show();
         } else {
-
-            if (backgroundNormal != null) tbUserEmail.setBackground(backgroundNormal);
-
-            if (sendCommon != null && sendCommon.getStatus() != android.os.AsyncTask.Status.RUNNING) {
-                Log.d(TAG, "Запуск отправки кода на email: " + userEmail);
-                sendCommon.execute();
-            } else {
-                Log.w(TAG, "Запрос уже выполняется или sendCommon null.");
-            }
+            tbUserEmail.setBackground(Background);
+            if (SendCommon.getStatus() != AsyncTask.Status.RUNNING)
+                SendCommon.execute();
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (sendCommon != null && sendCommon.getStatus() == android.os.AsyncTask.Status.RUNNING) {
-            sendCommon.cancel(true);
-            Log.d(TAG, "AsyncTask отменён при уничтожении активности.");
+    DialogInterface.OnCancelListener AlterDialogCancelListener = new DialogInterface.OnCancelListener() {
+        @Override
+        public void onCancel(DialogInterface dialog) {
+            Intent Verification = new Intent(Context, Verification.class);
+            Verification.putExtra("Code", Code);
+            Verification.putExtra("Email", tbUserEmail.getText());
+            startActivity(Verification);
         }
-    }
+    };
 
-    public void OnBack(View view) {
-        finish();
-    }
+    CallbackResponse CallbackResponseError = new CallbackResponse() {
+        @Override
+        public void returner(String Response) {
+            Toast.makeText(Context, "Ошибка запроса", Toast.LENGTH_SHORT).show();
+            SendCommon = new SendCommon(tbUserEmail, CallbackResponseCode, CallbackResponseError);
+        }
+    };
+
+    CallbackResponse CallbackResponseCode = new CallbackResponse() {
+        @Override
+        public void returner(String Response) {
+            Code = Response;
+
+            AlertDialog.Builder AlertDialogBuilder = new AlertDialog.Builder(Context);
+            ConstraintLayout View = (ConstraintLayout)getLayoutInflater().inflate(R.layout.check_email, null);
+            AlertDialogBuilder.setView(View);
+            AlertDialogBuilder.setOnCancelListener(AlterDialogCancelListener);
+            AlertDialog Dialog = AlertDialogBuilder.create();
+            Dialog.show();
+        }
+    };
 }
